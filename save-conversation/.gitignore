@@ -1,0 +1,5 @@
+# 个人配置（首次使用后自动生成，不要上传）
+config.json
+
+# macOS 垃圾文件
+.DS_Store
