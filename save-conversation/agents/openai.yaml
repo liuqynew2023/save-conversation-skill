@@ -1,3 +1,3 @@
 interface:
   display_name: "Save Conversation"
-  short_description: "把对话按主题归档到「AI agent学习」文件夹"
+  short_description: "把对话存成 Markdown + Word（可自定义文档名、可切换存储位置）"
