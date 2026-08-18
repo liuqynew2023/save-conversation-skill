@@ -1,14 +1,25 @@
 # save-conversation（Codex Skill）
 
-一个给 [Codex](https://openai.com/codex) 使用的「对话归档」技能：输入 `【生成文档】`，自动把当前对话（问题、回答、提问时间）整理成 Markdown + Word，按「主题文件夹」存进你的知识库目录。
+一个给 [Codex](https://openai.com/codex) 使用的「对话归档」技能：把有价值的 AI 对话一键存成 Markdown + Word，按主题自动归档。
+
+> 一句话：输入 `【生成文档】`，自动把当前对话（问题、回答、提问时间）整理成 `.md` + `.docx`，存进你配置的文件夹。
 
 ## 功能
 
-- **触发词**：`【生成文档】`（可带标题，例如 `【生成文档】提示词学习心得`）
-- **统一归档**：默认存到 `~/Desktop/AI agent学习/`（可在 `SKILL.md` 顶部修改）
-- **按主题建文件夹**：自动根据对话主题创建子文件夹，同名主题复用、不覆盖
-- **文件命名**：取「本次提问」的前 10 个字
-- **双格式输出**：`.md`（给 AI 复用 / 喂知识库）+ `.docx`（给人阅读）
+- 📁 **一键归档**：`【生成文档】` → `.md` + `.docx` 两份
+- 🗂 **按主题归类**：自动建子文件夹，同名主题合并、不覆盖
+- ✏️ **自定义命名**：`【生成文档】周会纪要`；不填默认「提问前 10 字」
+- 🔀 **切换存储位置**：`【切换存储位置】[1.文件夹名=..] [2.路径=..]`
+- 🧭 **零基础上手**：首次使用欢迎引导 + `【存档帮助】` 速查卡
+
+## 快速上手
+
+```
+【生成文档】                                    → 默认命名存档
+【生成文档】周会纪要                             → 自定义命名存档
+【切换存储位置】[1.文件夹名=产品调研] [2.路径=/Users/xxx/Desktop]
+【存档帮助】                                    → 查看速查卡
+```
 
 ## 仓库结构
 
@@ -17,8 +28,11 @@ save-conversation-skill/
 ├── README.md
 └── save-conversation/          # 技能本体
     ├── SKILL.md                # 指令：触发词、流程、文档模板
+    ├── README.md               # 技能说明
     ├── agents/openai.yaml      # 技能显示信息
-    └── scripts/archive.py      # 归档脚本（生成 .md 与 .docx）
+    └── scripts/
+        ├── config.py           # 存储位置配置（首次使用自动建文件夹）
+        └── archive.py          # 归档脚本（生成 .md 与 .docx）
 ```
 
 ## 安装
@@ -31,18 +45,11 @@ python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-githu
 ```
 
 方式二（手动）：
-把 `save-conversation/` 文件夹复制到 `~/.codex/skills/` 即可。
+```bash
+cp -r save-conversation ~/.codex/skills/
+```
 
-安装后，在新对话里输入 `【生成文档】` 即可触发。
-
-## 自定义修改
-
-| 想改什么 | 改哪里 |
-|----------|--------|
-| 触发词 / 存档流程 / 文档模板 | `save-conversation/SKILL.md` |
-| 存档根目录 | `SKILL.md` 顶部「存储根目录」 |
-| Word 格式（字体 / 颜色 / 表格） | `save-conversation/scripts/archive.py` |
-| 技能显示名 | `save-conversation/agents/openai.yaml` |
+安装后，新开一个 Codex 对话，首次使用按提示配置存储位置即可。
 
 ## 依赖
 
