@@ -3,7 +3,7 @@
 """按主题文件夹归档对话：从 stdin 读 Markdown，生成 .md 与 .docx 两个版本。
 
 用法:
-  python3 archive.py --root "根目录" --folder "主题文件夹" --name "提问前10字"
+  python3 archive.py --root "根目录" --folder "主题文件夹" --name "文档名"
   （Markdown 内容从标准输入读取；输出到 <root>/<folder>/<name>.md 和 <name>.docx）
 """
 import os, sys, re, argparse
