@@ -1,50 +1,97 @@
 ---
 name: save-conversation
-description: Save the current conversation (the user's question, the assistant's answer, and the time the question was asked) into a topic folder under the user's "AI agent学习" knowledge base, as Markdown and Word files. Trigger when the user types 【生成文档】 (optionally followed by a custom title) or otherwise asks to save / archive / 归档 / 生成文档 the current conversation. All archives go under one common folder and are organized by conversation topic.
+description: Save the current conversation (the user's question, the assistant's answer, and the time the question was asked) into a topic folder under a user-configured storage root, as Markdown and Word files. Trigger when the user types 【生成文档】 — optionally followed by a custom document name (e.g. 【生成文档】我的学习笔记) — or otherwise asks to save / archive / 归档 / 生成文档 the current conversation. Supports 【存档帮助】 to show a quick-start cheat sheet, and 【切换存储位置】[1.文件夹名=...] [2.路径=...] to switch storage mid-conversation. On first use, show a short example-driven guide and ask for the storage folder name and path. Use the custom name when provided; otherwise default to the first 10 characters of the question.
 metadata:
-  short-description: 把对话存成 Markdown + Word，按主题归档到「AI agent学习」文件夹
+  short-description: 把对话存成 Markdown + Word（欢迎引导 + 帮助卡 + 自定义名 + 可切换位置）
 ---
 
-# Save Conversation（按主题归档对话到「AI agent学习」文件夹）
+# Save Conversation（按主题归档对话）
 
-把当前对话保存成 Markdown + Word 两份文档，统一存到用户的「AI agent学习」知识库文件夹下，按「主题文件夹」组织。
+把当前对话保存成 Markdown + Word 两份文档，存到「用户配置的存储根目录」下，按「主题文件夹」组织。
+设计原则：**用示例代替说明、即时提示代替记忆、容错代替报错**。
 
-## 存储根目录（可在此修改）
-默认根目录固定为：
+## 首次使用 / 欢迎引导（未配置时，或用户第一次调用时展示）
+
+先展示一段**短、带示例**的欢迎语，再引导配置：
+
 ```
-/Users/liuqingyuan05/Desktop/AI agent学习/
+👋 欢迎使用「保存对话」技能！
+
+第 1 步｜告诉我文档存哪（只需设置一次）：
+   直接说 → 存到桌面，文件夹叫「我的笔记」
+
+第 2 步｜以后想存档，输入：
+   【生成文档】            → 自动按主题归档
+   【生成文档】周会纪要     → 用你起的名字归档
+
+🔧 想换存储位置 / 看完整命令：
+   【存档帮助】
 ```
-想换地方时，只改这一处即可。
+
+然后询问用户：`请告诉我「文件夹名」和「存放路径」（例如：文件夹叫「我的笔记」，放在桌面）。`
+
+## 帮助命令（随时可查的速查卡）
+- 触发：用户输入 `【存档帮助】`、`【?】`，或问「怎么用 / 使用说明 / 命令有哪些」。
+- 回复一张**可复制的速查卡**：
+
+```
+【生成文档】                              存档（默认：提问前10字命名）
+【生成文档】自定义名字                      存档（用自定义名字）
+【切换存储位置】[1.文件夹名=..] [2.路径=..]  换存储位置
+【存档帮助】                              查看本速查卡
+```
 
 ## 触发条件
-- 用户输入 `【生成文档】`（可带可选标题，例如 `【生成文档】提示词学习心得`）
-- 或用户用自然语言说「保存/归档本次对话、把这段对话存成文档」等相近意思。
+- 用户输入 `【生成文档】`（可附自定义文档名，如 `【生成文档】我的学习笔记`）
+- 用户输入 `【切换存储位置】` + 固定格式字段
+- 用户输入 `【存档帮助】` / `【?】` / 询问怎么用
+- 用户说「保存/归档本次对话」「把这段对话存成文档」等相近意思
+- 用户输入相似但错误的口令（如 `【生成文件】`、`【存档】`）→ 温柔纠偏：
+  `你是不是想说「【生成文档】」？我可以按这个指令帮你存档。`
 
-## 执行步骤
-1. **确定根目录**：`/Users/liuqingyuan05/Desktop/AI agent学习/`（若不存在则创建；若该目录不可写，先向用户申请写入权限再执行）。
-2. **确定主题文件夹**：根据本次对话主题，起一个简洁主题名（2~12 个字，去掉 `/ \ : * ? " < > |` 等非法字符）。在根目录下创建该文件夹；**同名文件夹已存在则复用（追加文件，不覆盖）**。
-3. **确定文件名**：取「本次核心提问」的**前 10 个字**作为文件名。
-   - 清理规则：去掉 `【】`、空格、换行，以及常见中英文标点（`？。，、！：；""''…—` 等）。
-   - 不足 10 个字 → 用全部；清理后为空 → 退回用主题文件夹名。
+## 存储位置配置 / 切换
+
+### 首次配置（未配置存储位置时）
+1. 展示上面的「欢迎引导」。
+2. 询问两点：「存储文件夹的名字」+「创建的路径」。
+   - 拼成完整路径：`<路径>/<名字>`；只给了名字没给路径 → 默认桌面（`/Users/<用户名>/Desktop/<名字>`），与用户确认后再创建。
+3. 运行 `config.py get`：`NOT_CONFIGURED` → 继续配置；`ROOT=...` → 已配置，跳过。
+4. 运行 `config.py set --root "<完整路径>"` → 创建文件夹并保存配置。
+5. 若目标目录不可写，先向用户申请写入权限。
+
+### 切换存储位置（固定格式指令）
+- 固定格式（两个字段都要）：
+  ```
+  【切换存储位置】[1.文件夹名=新文件夹名] [2.路径=/Users/xxx/Desktop]
+  ```
+- 执行：解析两字段 → 拼完整路径 `<路径>/<文件夹名>` → `config.py set --root` → 确认「已切换到 <完整路径>」。
+- **缺字段 / 格式不对** → 不报错，给示例式修复：
+  `缺少「路径」字段，参考：`【切换存储位置】[1.文件夹名=产品调研] [2.路径=/Users/xxx/Desktop]``
+- 兼容自然语言：「换到桌面，文件夹叫 XXX」→ 同样处理。
+
+## 执行步骤（【生成文档】）
+1. **读取存储根目录**：`config.py get`；若未配置，先执行「首次配置」。
+2. **确定主题文件夹**：根据本次对话主题，起简洁主题名（2~12 个字，去掉 `/ \ : * ? " < > |` 等非法字符）。在根目录下创建；同名已存在则复用（追加，不覆盖）。
+3. **确定文件名**（优先级从高到低）：
+   - 用户附了自定义文档名 → 用自定义名（清理非法字符、去掉两端引号）。
+   - 未附名 → 默认用「本次核心提问」的前 10 个字：
+     - 清理规则：去掉 `【】`、空格、换行、常见中英文标点（`？。，、！：；""''…—` 等）。
+     - 不足 10 个字 → 用全部；清理后为空 → 退回用主题文件夹名。
 4. **回顾当前对话**，提取有价值内容：用户原始问题/诉求、我的回答要点、关键结论、本次产生的文件路径。
-5. **记录时间**：`提问时间` 尽量取用户提问发生的日期（对话上下文中可用当前日期；能明确到时分就写时分，否则只写日期）。`归档时间` 用当前时间。
-6. **生成 Markdown 内容**（模板见下），并把 `主题文件夹名` 写进模板的「主题」字段。
-7. **调用脚本生成文件**：用工作区依赖的 Python 运行 `scripts/archive.py`，传入 `--root`、`--folder`、`--name`，脚本会自动生成 `<root>/<folder>/<name>.md` 和 `<name>.docx`。
-8. **回复用户**：告知已保存，并给出两个文件的绝对路径链接。
-
-## 标题规则（仅用于可选标题，不改变存储结构）
-- 用户输入了标题 → 可作为文档内标题使用，但**文件夹仍按主题、文件名仍按提问前 10 字**。
-- 未输入标题 → 用「本次核心提问」作为文档标题。
-
-## 归档范围
-- 默认归档「本次对话」。
-- 用户若说明只归档某一部分（如「只要关于提示词的那段」），按用户指定范围提取。
+5. **记录时间**：`提问时间` 尽量取提问发生的日期（能明确到时分就写时分，否则只写日期）；`归档时间` 用当前时间。
+6. **生成 Markdown 内容**（模板见下），把 `主题文件夹名` 和 `存储根目录` 写进模板。
+7. **调用归档脚本**：用工作区依赖的 Python 运行 `scripts/archive.py`，传入 `--root`、`--folder`、`--name`，生成 `<root>/<folder>/<name>.md` 和 `<name>.docx`。
+8. **回复用户（命名透明化 + 即时提示）**：
+   - 默认命名时：`✅ 已保存到 <路径>。本次按默认规则命名为「<名字>」（提问前10字）；想自定义可写成「【生成文档】你的名字」。`
+   - 自定义名时：`✅ 已按你命名的「<名字>」保存到 <路径>。`
+   - 之后**每次只补一个小技巧**：先教「自定义名」，下次再教「切换存储位置」。
 
 ## Markdown 模板
 ```
 # {标题}
 
 > 主题：{主题文件夹名}
+> 存储位置：{存储根目录}
 > 提问时间：{YYYY-MM-DD HH:mm}
 > 归档时间：{YYYY-MM-DD HH:mm}
 
@@ -61,16 +108,27 @@ metadata:
 - {文件路径或链接}
 ```
 
+## 标题规则
+- 文档标题 = 自定义文档名（如有）；否则用「本次核心提问」。
+- 标题只影响文档内标题与文件名，不改变「主题文件夹」的划分。
+
+## 归档范围
+- 默认归档「本次对话」；用户若说明只归档某一部分（如「只要关于提示词的那段」），按用户指定范围提取。
+
 ## 工具调用
+> 以下命令均在「技能目录」（含 SKILL.md 的目录）下运行；python3 用工作区依赖的 Python。
+
 ```bash
-# 用工作区依赖的 python3（保证有 python-docx），从 stdin 读 Markdown
-python3 /Users/liuqingyuan05/.codex/skills/save-conversation/scripts/archive.py \
-  --root "/Users/liuqingyuan05/Desktop/AI agent学习" \
-  --folder "主题文件夹" \
-  --name "提问前10字"
+# 1) 配置/切换存储位置
+python3 scripts/config.py get
+python3 scripts/config.py set --root "/Users/xxx/Desktop/文件夹名"
+
+# 2) 归档（从 stdin 读 Markdown）
+python3 scripts/archive.py \
+  --root "读取到的ROOT" --folder "主题文件夹" --name "自定义名或提问前10字"
 ```
-脚本会自动在 `<root>/<folder>/` 下生成 `{提问前10字}.md` 和 `{提问前10字}.docx`。
 
 ## 注意
-- 只链接实际生成、位于「AI agent学习」文件夹下的文件。
+- 只链接实际生成、位于「存储根目录」下的文件。
 - 不要把本技能的 scripts/ 内部文件暴露给用户。
+- 配置文件是技能目录下的 `config.json`；删除后会回到首次使用流程。
